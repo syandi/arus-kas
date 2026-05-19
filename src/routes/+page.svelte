@@ -53,7 +53,7 @@
 <div class="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 p-6">
   <div class="max-w-5xl mx-auto space-y-8">
     <header class="flex justify-between items-center">
-      <h1 class="text-3xl font-bold tracking-tight bg-white">Arus Kas</h1>
+      <h1 class="text-3xl font-bold tracking-tight">Arus Kas</h1>
       <Dialog.Root bind:open={dialogOpen}>
         <Dialog.Trigger>
           <Button>Tambah Transaksi</Button>

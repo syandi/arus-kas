@@ -6,6 +6,7 @@ import { cloudflare } from '@cloudflare/vite-plugin';
 export default defineConfig({
   plugins: [
     tailwindcss(),
-    sveltekit()
+    sveltekit(),
+    cloudflare()
   ]
 });

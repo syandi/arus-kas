@@ -58,7 +58,7 @@
         <Dialog.Trigger>
           <Button>Tambah Transaksi</Button>
         </Dialog.Trigger>
-        <Dialog.Content class="sm:max-w-[425px]">
+        <Dialog.Content class="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
           <Dialog.Header>
             <Dialog.Title>Transaksi Baru</Dialog.Title>
             <Dialog.Description>Masukkan detail pemasukan atau pengeluaran baru.</Dialog.Description>

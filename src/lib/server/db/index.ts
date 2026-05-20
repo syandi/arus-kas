@@ -1,7 +1,5 @@
 import { drizzle } from 'drizzle-orm/d1';
 import * as schema from './schema';
 
-export function getDb(env: Env) {
-  // @ts-ignore
-  return drizzle(env.DB, { schema });
-}
+export const getDb = (env: Env) =>
+  drizzle(env.DB, { schema });

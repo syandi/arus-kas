@@ -3,17 +3,11 @@ import { treaty } from '@elysiajs/eden';
 import type { App } from '$lib/server/api';
 
 export const load: PageServerLoad = async ({ fetch, url }) => {
-	// Treat the local API
 	const api = treaty<App>(url.origin, { fetcher: fetch });
-	
-	const response = await api.api.transactions.get();
-	const branchesResponse = await api.api.branches.get();
-	
-	const transactions = response.data || [];
-	const branches = branchesResponse.data || [];
+	const response = await api.api.branches.get();
+	const branches = response.data || [];
 
 	return {
-		transactions,
 		branches
 	};
 };

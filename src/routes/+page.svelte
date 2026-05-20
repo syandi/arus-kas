@@ -20,7 +20,14 @@
     type: 'expense',
     description: '',
     categoryId: '1',
+    branchId: '',
     date: new Date().toISOString().slice(0, 10)
+  });
+
+  $effect(() => {
+    if (data.branches && data.branches.length > 0 && formData.branchId === '') {
+      formData.branchId = data.branches[0].id.toString();
+    }
   });
 
   let totalIncome = $derived(data.transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0));
@@ -35,6 +42,7 @@
       amount: Number(formData.amount),
       type: formData.type as 'income' | 'expense',
       categoryId: Number(formData.categoryId),
+      branchId: Number(formData.branchId),
       description: formData.description,
       date: formData.date
     });
@@ -43,7 +51,7 @@
     if (!error) {
       dialogOpen = false;
       invalidateAll(); // refresh data
-      formData = { amount: '', type: 'expense', description: '', categoryId: '1', date: new Date().toISOString().slice(0, 10) };
+      formData = { amount: '', type: 'expense', description: '', categoryId: '1', branchId: '', date: new Date().toISOString().slice(0, 10) };
     } else {
       alert('Gagal menambah transaksi');
     }
@@ -54,10 +62,12 @@
   <div class="max-w-5xl mx-auto space-y-8">
     <header class="flex justify-between items-center">
       <h1 class="text-3xl font-bold tracking-tight">Arus Kas</h1>
-      <Dialog.Root bind:open={dialogOpen}>
-        <Dialog.Trigger>
-          <Button>Tambah Transaksi</Button>
-        </Dialog.Trigger>
+      <div class="flex items-center gap-4">
+        <a href="/branches" class="text-sm font-medium hover:underline text-zinc-600 dark:text-zinc-400">Master Cabang</a>
+        <Dialog.Root bind:open={dialogOpen}>
+          <Dialog.Trigger>
+            <Button>Tambah Transaksi</Button>
+          </Dialog.Trigger>
         <Dialog.Content class="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
           <Dialog.Header>
             <Dialog.Title>Transaksi Baru</Dialog.Title>
@@ -69,6 +79,15 @@
               <select id="type" bind:value={formData.type} class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                 <option value="income">Pemasukan</option>
                 <option value="expense">Pengeluaran</option>
+              </select>
+            </div>
+            <div class="space-y-2">
+              <Label for="branch">Cabang</Label>
+              <select id="branch" bind:value={formData.branchId} required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                <option value="" disabled selected>Pilih Cabang</option>
+                {#each data.branches as branch}
+                  <option value={branch.id.toString()}>{branch.name}</option>
+                {/each}
               </select>
             </div>
             <div class="space-y-2">
@@ -89,6 +108,7 @@
           </form>
         </Dialog.Content>
       </Dialog.Root>
+      </div>
     </header>
 
     <div class="grid gap-4 md:grid-cols-3">

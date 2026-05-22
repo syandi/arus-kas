@@ -5,6 +5,10 @@ declare global {
 		DB: D1Database;
 	}
 	namespace App {
+		interface Locals {
+			csrfToken: string;
+			user?: { id: number; branchId: number | null };
+		}
 		interface Platform {
 			env: Env;
 			ctx: ExecutionContext;
@@ -13,7 +17,6 @@ declare global {
 		}
 
 		// interface Error {}
-		// interface Locals {}
 		// interface PageData {}
 		// interface PageState {}
 	}

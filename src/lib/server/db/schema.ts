@@ -22,3 +22,16 @@ export const transactions = sqliteTable('transactions', {
   description: text('description').notNull(),
   date: integer('date', { mode: 'timestamp' }).notNull(),
 });
+
+export const users = sqliteTable('users', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  username: text('username').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  branchId: integer('branch_id').references(() => branches.id),
+});
+
+export const sessions = sqliteTable('sessions', {
+  id: text('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+});

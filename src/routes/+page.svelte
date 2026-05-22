@@ -7,8 +7,7 @@
   import { Label } from '$lib/components/ui/label';
   import * as Dialog from '$lib/components/ui/dialog';
   import * as Select from '$lib/components/ui/select';
-  import { treaty } from '@elysiajs/eden';
-  import type { App } from '$lib/server/api';
+  import { getApi } from '$lib/api';
   import { invalidateAll } from '$app/navigation';
 
   let { data }: { data: PageData } = $props();
@@ -26,18 +25,18 @@
 
   $effect(() => {
     if (data.branches && data.branches.length > 0 && formData.branchId === '') {
-      formData.branchId = data.branches[0].id.toString();
+      formData.branchId = (data.branches[0] as { id: number }).id.toString();
     }
   });
 
-  let totalIncome = $derived(data.transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0));
-  let totalExpense = $derived(data.transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0));
+  let totalIncome = $derived((data.transactions as any[]).filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0));
+  let totalExpense = $derived((data.transactions as any[]).filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0));
   let balance = $derived(totalIncome - totalExpense);
 
   async function submitTransaction(e: Event) {
     e.preventDefault();
     loading = true;
-    const api = treaty<App>(window.location.origin);
+    const api = getApi(window.location.origin, data.csrfToken);
     const { data: res, error } = await api.api.transactions.post({
       amount: Number(formData.amount),
       type: formData.type as 'income' | 'expense',
@@ -57,15 +56,20 @@
     }
   }
 
-  const deleteTransaction = async (id: number) => {
+  async function deleteTransaction(id: number) {
     if (!confirm('Hapus transaksi ini?')) return;
-    const api = treaty<App>(window.location.origin);
+    const api = getApi(window.location.origin, data.csrfToken);
     const { error } = await api.api.transactions({ id }).delete();
     if (!error) {
       invalidateAll();
     } else {
       alert('Gagal menghapus transaksi');
     }
+  }
+
+  async function handleLogout() {
+    await fetch('/logout', { method: 'POST' });
+    window.location.href = '/login';
   }
 </script>
 
@@ -74,7 +78,10 @@
     <header class="flex justify-between items-center">
       <h1 class="text-3xl font-bold tracking-tight">Arus Kas</h1>
       <div class="flex items-center gap-4">
-        <a href="/branches" class="text-sm font-medium hover:underline text-zinc-600 dark:text-zinc-400">Master Cabang</a>
+        {#if data.user?.branchId === null}
+          <a href="/branches" class="text-sm font-medium hover:underline text-zinc-600 dark:text-zinc-400">Master Cabang</a>
+        {/if}
+        <Button variant="outline" size="sm" onclick={handleLogout}>Logout</Button>
         <Dialog.Root bind:open={dialogOpen}>
           <Dialog.Trigger>
             <Button>Tambah Transaksi</Button>
@@ -94,10 +101,10 @@
             </div>
             <div class="space-y-2">
               <Label for="branch">Cabang</Label>
-              <select id="branch" bind:value={formData.branchId} required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+              <select id="branch" bind:value={formData.branchId} required disabled={data.user?.branchId !== null} class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                 <option value="" disabled selected>Pilih Cabang</option>
                 {#each data.branches as branch}
-                  <option value={branch.id.toString()}>{branch.name}</option>
+                  <option value={(branch as { id: number }).id.toString()}>{(branch as { name: string }).name}</option>
                 {/each}
               </select>
             </div>
@@ -168,18 +175,18 @@
           <Table.Body>
             {#each data.transactions as tx}
               <Table.Row>
-                <Table.Cell>{new Date(tx.date).toLocaleDateString('id-ID')}</Table.Cell>
-                <Table.Cell>{tx.description}</Table.Cell>
+                <Table.Cell>{new Date((tx as { date: Date }).date).toLocaleDateString('id-ID')}</Table.Cell>
+                <Table.Cell>{(tx as { description: string }).description}</Table.Cell>
                 <Table.Cell>
-                  <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold {tx.type === 'income' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}">
-                    {tx.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+                  <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold {((tx as { type: 'income' | 'expense' }).type === 'income' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300')}">
+                    {(tx as { type: 'income' | 'expense' }).type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
                   </span>
                 </Table.Cell>
-                <Table.Cell class="text-right {tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
-                  {tx.type === 'income' ? '+' : '-'} Rp {tx.amount.toLocaleString('id-ID')}
+                <Table.Cell class="text-right {((tx as { type: 'income' | 'expense' }).type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}">
+                  {((tx as { type: 'income' | 'expense' }).type === 'income' ? '+' : '-')} Rp {((tx as { amount: number }).amount).toLocaleString('id-ID')}
                 </Table.Cell>
                 <Table.Cell>
-                  <Button variant="ghost" size="sm" class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950" onclick={() => deleteTransaction(tx.id)}>Hapus</Button>
+                  <Button variant="ghost" size="sm" class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950" onclick={() => deleteTransaction((tx as { id: number }).id)}>Hapus</Button>
                 </Table.Cell>
               </Table.Row>
             {/each}

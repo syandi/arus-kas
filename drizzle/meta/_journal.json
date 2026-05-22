@@ -15,6 +15,20 @@
       "when": 1779161441135,
       "tag": "0001_steady_red_ghost",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1779422127033,
+      "tag": "0002_youthful_reaper",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1779426725601,
+      "tag": "0003_careful_prima",
+      "breakpoints": true
     }
   ]
 }

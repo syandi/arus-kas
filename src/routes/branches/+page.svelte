@@ -6,8 +6,7 @@
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import * as Dialog from '$lib/components/ui/dialog';
-  import { treaty } from '@elysiajs/eden';
-  import type { App } from '$lib/server/api';
+  import { getApi } from '$lib/api';
   import { invalidateAll } from '$app/navigation';
 
   let { data }: { data: PageData } = $props();
@@ -22,7 +21,7 @@
   async function submitBranch(e: Event) {
     e.preventDefault();
     loading = true;
-    const api = treaty<App>(window.location.origin);
+    const api = getApi(window.location.origin, data.csrfToken);
     const { error } = await api.api.branches.post({
       name: formData.name,
       location: formData.location
@@ -40,13 +39,18 @@
 
   async function deleteBranch(id: number) {
     if (!confirm('Hapus cabang ini? Semua transaksi terkait mungkin akan gagal atau cabang tidak dapat dihapus jika ada transaksi.')) return;
-    const api = treaty<App>(window.location.origin);
+    const api = getApi(window.location.origin, data.csrfToken);
     const { error } = await api.api.branches({ id }).delete();
     if (!error) {
       invalidateAll();
     } else {
       alert(error.value || 'Gagal menghapus cabang');
     }
+  }
+
+  async function handleLogout() {
+    await fetch('/logout', { method: 'POST' });
+    window.location.href = '/login';
   }
 </script>
 
@@ -55,8 +59,9 @@
     <header class="flex justify-between items-center">
       <div>
         <h1 class="text-3xl font-bold tracking-tight">Master Cabang</h1>
-        <div class="text-sm text-zinc-500 mt-1">
+        <div class="text-sm text-zinc-500 mt-1 flex items-center gap-4">
           <a href="/" class="hover:underline">&larr; Kembali ke Dashboard</a>
+          <Button variant="outline" size="sm" onclick={handleLogout}>Logout</Button>
         </div>
       </div>
       <Dialog.Root bind:open={dialogOpen}>

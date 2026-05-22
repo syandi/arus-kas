@@ -37,6 +37,17 @@
       alert('Gagal menambah cabang');
     }
   }
+
+  async function deleteBranch(id: number) {
+    if (!confirm('Hapus cabang ini? Semua transaksi terkait mungkin akan gagal atau cabang tidak dapat dihapus jika ada transaksi.')) return;
+    const api = treaty<App>(window.location.origin);
+    const { error } = await api.api.branches({ id }).delete();
+    if (!error) {
+      invalidateAll();
+    } else {
+      alert(error.value || 'Gagal menghapus cabang');
+    }
+  }
 </script>
 
 <div class="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 p-6">
@@ -86,6 +97,7 @@
               <Table.Head>Nama Cabang</Table.Head>
               <Table.Head>Lokasi</Table.Head>
               <Table.Head>Dibuat Pada</Table.Head>
+              <Table.Head class="w-[80px]"></Table.Head>
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -95,11 +107,14 @@
                 <Table.Cell class="font-medium">{branch.name}</Table.Cell>
                 <Table.Cell>{branch.location || '-'}</Table.Cell>
                 <Table.Cell>{new Date(branch.createdAt).toLocaleDateString('id-ID')}</Table.Cell>
+                <Table.Cell>
+                  <Button variant="ghost" size="sm" class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950" onclick={() => deleteBranch(branch.id)}>Hapus</Button>
+                </Table.Cell>
               </Table.Row>
             {/each}
             {#if data.branches.length === 0}
               <Table.Row>
-                <Table.Cell colspan={4} class="h-24 text-center">Belum ada cabang.</Table.Cell>
+                <Table.Cell colspan={5} class="h-24 text-center">Belum ada cabang.</Table.Cell>
               </Table.Row>
             {/if}
           </Table.Body>

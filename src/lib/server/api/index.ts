@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { getDb } from '../db';
 import { transactions, categories, branches } from '../db/schema';
-import { desc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 
 // Pass env from SvelteKit to Elysia using state
 export const app = new Elysia({ prefix: '/api' })
@@ -26,6 +26,10 @@ export const app = new Elysia({ prefix: '/api' })
       date: t.String()
     })
   })
+  .delete('/transactions/:id', async ({ db, params }) => {
+    await db.delete(transactions).where(eq(transactions.id, Number(params.id)));
+    return { success: true };
+  })
   .get('/branches', async ({ db }) => {
     return await db.select().from(branches);
   })
@@ -45,6 +49,15 @@ export const app = new Elysia({ prefix: '/api' })
       name: t.String(),
       location: t.Optional(t.String())
     })
+  })
+  .delete('/branches/:id', async ({ db, params }) => {
+    try {
+      await db.delete(branches).where(eq(branches.id, Number(params.id)));
+      return { success: true };
+    } catch (e: any) {
+      console.error("DB DELETE ERROR:", e);
+      return new Response("Tidak dapat menghapus cabang (kemungkinan ada transaksi terkait).", { status: 400 });
+    }
   });
 
 export type App = typeof app;

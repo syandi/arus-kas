@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions = {
-    default: async ({ request, url, locals, cookies }) => {
+    default: async ({ request, url, locals, cookies, fetch }) => {
         const data = await request.formData();
         const username = data.get('username')?.toString();
         const password = data.get('password')?.toString();
@@ -20,11 +20,13 @@ export const actions = {
         }
 
         const cookieString = request.headers.get('cookie') || '';
-        const api = getApi(url.origin, locals.csrfToken, cookieString);
-        const { data: res, error } = await api.api.auth.login.post({
+        const api = getApi(url.origin, locals.csrfToken, cookieString, fetch);
+        const { data: res, error, status, response } = await api.api.auth.login.post({
             username,
             password
         });
+        
+        console.log("Login API Response:", { res, error, status });
 
         if (error || !res?.success || !res?.sessionId) {
             return fail(401, { error: res?.error || 'Gagal login' });

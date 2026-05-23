@@ -3,10 +3,10 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { cloudflare } from '@cloudflare/vite-plugin';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     tailwindcss(),
     sveltekit(),
-    cloudflare()
+    mode === 'development' ? cloudflare() : undefined
   ]
-});
+}));

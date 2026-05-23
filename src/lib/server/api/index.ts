@@ -4,7 +4,7 @@ import { transactions, categories, branches, users, sessions } from '../db/schem
 import { desc, eq } from 'drizzle-orm';
 
 // Pass env from SvelteKit to Elysia using state
-export const app = new Elysia({ prefix: '/api' })
+export const app = new Elysia({ aot: false, prefix: '/api' })
   .state('env', {} as any)
   .derive(({ store }) => ({ db: getDb(store.env) }))
   .onRequest(({ request, set }) => {

@@ -3,7 +3,7 @@
 	"name": "tahu-uap",
 	"compatibility_date": "2026-05-18",
 	"compatibility_flags": [
-		"nodejs_als"
+		"nodejs_compat"
 	],
 	"main": ".svelte-kit/cloudflare/_worker.js",
 	"assets": {
@@ -15,8 +15,8 @@
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "arus-kas-db",
-			"database_id": "arus-kas-db-local",
+			"database_name": "arus-kas-db-prod",
+			"database_id": "420a1eaf-5ea7-4c17-885e-0de37afe5b5e",
 			"migrations_dir": "drizzle"
 		}
 	]

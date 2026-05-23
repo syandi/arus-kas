@@ -99,6 +99,7 @@
                 <option value="expense">Pengeluaran</option>
               </select>
             </div>
+            {#if data.user?.branchId === null}
             <div class="space-y-2">
               <Label for="branch">Cabang</Label>
               <select id="branch" bind:value={formData.branchId} required disabled={data.user?.branchId !== null} class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
@@ -108,6 +109,7 @@
                 {/each}
               </select>
             </div>
+            {/if}
             <div class="space-y-2">
               <Label for="amount">Jumlah (Rp)</Label>
               <Input id="amount" type="number" bind:value={formData.amount} required placeholder="50000" />

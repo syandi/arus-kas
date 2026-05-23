@@ -29,8 +29,16 @@
     }
   });
 
-  let totalIncome = $derived((data.transactions as any[]).filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0));
-  let totalExpense = $derived((data.transactions as any[]).filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0));
+  let filterBranchId = $state('');
+
+  let filteredTransactions = $derived(
+    filterBranchId === '' 
+      ? data.transactions 
+      : (data.transactions as any[]).filter(t => t.branchId.toString() === filterBranchId)
+  );
+
+  let totalIncome = $derived((filteredTransactions as any[]).filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0));
+  let totalExpense = $derived((filteredTransactions as any[]).filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0));
   let balance = $derived(totalIncome - totalExpense);
 
   async function submitTransaction(e: Event) {
@@ -159,9 +167,22 @@
     </div>
 
     <Card.Root>
-      <Card.Header>
-        <Card.Title>Riwayat Transaksi</Card.Title>
-        <Card.Description>Daftar transaksi terbaru bulan ini.</Card.Description>
+      <Card.Header class="flex flex-row items-center justify-between">
+        <div>
+          <Card.Title>Riwayat Transaksi</Card.Title>
+          <Card.Description>Daftar transaksi terbaru bulan ini.</Card.Description>
+        </div>
+        {#if data.user?.branchId === null}
+          <div class="flex items-center gap-2">
+            <Label for="filterBranch" class="text-sm font-medium">Filter:</Label>
+            <select id="filterBranch" bind:value={filterBranchId} class="flex h-9 w-40 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+              <option value="">Semua Cabang</option>
+              {#each data.branches as branch}
+                <option value={(branch as { id: number }).id.toString()}>{(branch as { name: string }).name}</option>
+              {/each}
+            </select>
+          </div>
+        {/if}
       </Card.Header>
       <Card.Content>
         <Table.Root>
@@ -175,7 +196,7 @@
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {#each data.transactions as tx}
+            {#each filteredTransactions as tx}
               <Table.Row>
                 <Table.Cell>{new Date((tx as { date: Date }).date).toLocaleDateString('id-ID')}</Table.Cell>
                 <Table.Cell>{(tx as { description: string }).description}</Table.Cell>
@@ -192,7 +213,7 @@
                 </Table.Cell>
               </Table.Row>
             {/each}
-            {#if data.transactions.length === 0}
+            {#if filteredTransactions.length === 0}
               <Table.Row>
                 <Table.Cell colspan={5} class="h-24 text-center">Belum ada transaksi.</Table.Cell>
               </Table.Row>

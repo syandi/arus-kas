@@ -56,15 +56,8 @@
 
 <div class="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 p-6">
   <div class="max-w-5xl mx-auto space-y-8">
-    <header class="flex justify-between items-center">
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight">Master Cabang</h1>
-        <div class="text-sm text-zinc-500 mt-1 flex items-center gap-4">
-          <a href="/" class="hover:underline">&larr; Kembali ke Dashboard</a>
-          <a href="/settings" class="hover:underline">Pengaturan</a>
-          <Button variant="outline" size="sm" onclick={handleLogout}>Logout</Button>
-        </div>
-      </div>
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold tracking-tight">Daftar Cabang</h2>
       <Dialog.Root bind:open={dialogOpen}>
         <Dialog.Trigger>
           <Button>Tambah Cabang</Button>
@@ -89,7 +82,7 @@
           </form>
         </Dialog.Content>
       </Dialog.Root>
-    </header>
+    </div>
 
     <Card.Root>
       <Card.Header>

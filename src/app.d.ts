@@ -7,7 +7,7 @@ declare global {
 	namespace App {
 		interface Locals {
 			csrfToken: string;
-			user?: { id: number; branchId: number | null };
+			user?: { id: number; branchId: number | null; username: string };
 		}
 		interface Platform {
 			env: Env;

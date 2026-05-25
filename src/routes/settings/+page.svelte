@@ -17,20 +17,10 @@
       ? 'Konfirmasi password tidak cocok' 
       : null
   );
-
-  async function handleLogout() {
-    await fetch('/logout', { method: 'POST' });
-    window.location.href = '/login';
-  }
 </script>
 
-<div class="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
+<div class="flex flex-col items-center justify-center pt-10 pb-4 px-4">
   <div class="w-full max-w-md space-y-4">
-    
-    <!-- Navigation Back -->
-    <a href="/" class="text-sm font-medium hover:underline text-zinc-600 dark:text-zinc-400">
-      &larr; Kembali ke Dashboard
-    </a>
 
     <Card.Root>
       <Card.Header>
@@ -81,11 +71,5 @@
         </form>
       </Card.Content>
     </Card.Root>
-
-    <div class="flex justify-center mt-6">
-      <Button variant="ghost" class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950" onclick={handleLogout}>
-        Logout
-      </Button>
-    </div>
   </div>
 </div>

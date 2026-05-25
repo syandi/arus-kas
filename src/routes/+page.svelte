@@ -91,18 +91,12 @@
 
 <div class="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 p-6">
   <div class="max-w-5xl mx-auto space-y-8">
-    <header class="flex justify-between items-center">
-      <h1 class="text-3xl font-bold tracking-tight">Arus Kas</h1>
-      <div class="flex items-center gap-4">
-        {#if data.user?.branchId === null}
-          <a href="/branches" class="text-sm font-medium hover:underline text-zinc-600 dark:text-zinc-400">Master Cabang</a>
-        {/if}
-        <a href="/settings" class="text-sm font-medium hover:underline text-zinc-600 dark:text-zinc-400">Pengaturan</a>
-        <Button variant="outline" size="sm" onclick={handleLogout}>Logout</Button>
-        <Dialog.Root bind:open={dialogOpen}>
-          <Dialog.Trigger>
-            <Button>Tambah Transaksi</Button>
-          </Dialog.Trigger>
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold tracking-tight">Transaksi</h2>
+      <Dialog.Root bind:open={dialogOpen}>
+        <Dialog.Trigger>
+          <Button>Tambah Transaksi</Button>
+        </Dialog.Trigger>
         <Dialog.Content class="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
           <Dialog.Header>
             <Dialog.Title>Transaksi Baru</Dialog.Title>
@@ -153,8 +147,7 @@
           </form>
         </Dialog.Content>
       </Dialog.Root>
-      </div>
-    </header>
+    </div>
 
     <div class="grid gap-4 md:grid-cols-3">
       <Card.Root>

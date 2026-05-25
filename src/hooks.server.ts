@@ -21,7 +21,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   // 2. Authentication Check
   const sessionId = event.cookies.get('session_id');
   if (sessionId) {
-    const db = getDb(event.platform?.env || process.env);
+    const db = getDb(event.platform?.env as Env);
     const result = await db.select({
       session: sessions,
       user: users
@@ -31,7 +31,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       .get();
     
     if (result && new Date(result.session.expiresAt) > new Date()) {
-      event.locals.user = { id: result.user.id, branchId: result.user.branchId };
+      event.locals.user = { id: result.user.id, branchId: result.user.branchId, username: result.user.username };
     } else if (result) {
       // Expired
       await db.delete(sessions).where(eq(sessions.id, sessionId));

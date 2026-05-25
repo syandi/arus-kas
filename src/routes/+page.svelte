@@ -97,6 +97,7 @@
         {#if data.user?.branchId === null}
           <a href="/branches" class="text-sm font-medium hover:underline text-zinc-600 dark:text-zinc-400">Master Cabang</a>
         {/if}
+        <a href="/settings" class="text-sm font-medium hover:underline text-zinc-600 dark:text-zinc-400">Pengaturan</a>
         <Button variant="outline" size="sm" onclick={handleLogout}>Logout</Button>
         <Dialog.Root bind:open={dialogOpen}>
           <Dialog.Trigger>

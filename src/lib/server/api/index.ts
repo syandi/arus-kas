@@ -84,6 +84,44 @@ export const app = new Elysia({ aot: false, prefix: '/api' })
       sessionId: t.String()
     })
   })
+  .post('/auth/change-password', async ({ db, body, user, set }) => {
+    if (!user) {
+      set.status = 401;
+      return { success: false, error: 'Unauthorized' };
+    }
+    
+    const { oldPassword, newPassword } = body;
+    
+    // Hash old password to verify
+    const encoder = new TextEncoder();
+    const oldData = encoder.encode(oldPassword);
+    const oldHashBuffer = await crypto.subtle.digest('SHA-256', oldData);
+    const oldHashHex = Array.from(new Uint8Array(oldHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    // Check if old password matches
+    if (user.passwordHash !== oldHashHex) {
+      set.status = 400;
+      return { success: false, error: 'Password lama salah' };
+    }
+    
+    // Hash new password
+    const newData = encoder.encode(newPassword);
+    const newHashBuffer = await crypto.subtle.digest('SHA-256', newData);
+    const newHashHex = Array.from(new Uint8Array(newHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    // Update user
+    await db.update(users).set({ passwordHash: newHashHex }).where(eq(users.id, user.id));
+    
+    // Invalidate all active sessions for this user so they have to login again (security best practice)
+    await db.delete(sessions).where(eq(sessions.userId, user.id));
+    
+    return { success: true };
+  }, {
+    body: t.Object({
+      oldPassword: t.String(),
+      newPassword: t.String()
+    })
+  })
   .get('/transactions', async ({ db, user, set }) => {
     if (!user) { set.status = 401; return 'Unauthorized'; }
     if (user.branchId !== null) {

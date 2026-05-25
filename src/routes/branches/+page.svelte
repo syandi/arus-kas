@@ -61,6 +61,7 @@
         <h1 class="text-3xl font-bold tracking-tight">Master Cabang</h1>
         <div class="text-sm text-zinc-500 mt-1 flex items-center gap-4">
           <a href="/" class="hover:underline">&larr; Kembali ke Dashboard</a>
+          <a href="/settings" class="hover:underline">Pengaturan</a>
           <Button variant="outline" size="sm" onclick={handleLogout}>Logout</Button>
         </div>
       </div>

@@ -34,6 +34,13 @@
                 window.location.href = '/branches';
               }}
             >Master Cabang</a>
+            <a
+              href="/users"
+              class="text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-zinc-50 {$page.url.pathname === '/users' ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400'}"
+              onclick={() => {
+                window.location.href = '/users';
+              }}
+            >Pengguna</a>
           {/if}
           <a
             href="/settings"

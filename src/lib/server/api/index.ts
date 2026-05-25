@@ -198,6 +198,63 @@ export const app = new Elysia({ aot: false, prefix: '/api' })
   .get('/categories', async ({ db, user, set }) => {
     if (!user) { set.status = 401; return 'Unauthorized'; }
     return await db.select().from(categories);
+  })
+  .get('/users', async ({ db, user, set }) => {
+    if (!user || user.branchId !== null) { set.status = 403; return 'Forbidden'; }
+    // Join users with branches to get branch name
+    const result = await db.select({
+      id: users.id,
+      username: users.username,
+      branchId: users.branchId,
+      branchName: branches.name,
+      branchLocation: branches.location
+    })
+    .from(users)
+    .leftJoin(branches, eq(users.branchId, branches.id));
+    return result;
+  })
+  .post('/users', async ({ db, body, user, set }) => {
+    if (!user || user.branchId !== null) { set.status = 403; return 'Forbidden'; }
+    try {
+      const { username, password, branchId } = body;
+      
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+      await db.insert(users).values({
+        username,
+        passwordHash: hashHex,
+        branchId: branchId || null
+      });
+      return { success: true };
+    } catch (e: any) {
+      console.error("DB INSERT USER ERROR:", e);
+      return new Response(e.cause?.message || e.message, { status: 500 });
+    }
+  }, {
+    body: t.Object({
+      username: t.String(),
+      password: t.String(),
+      branchId: t.Optional(t.Union([t.Number(), t.Null()]))
+    })
+  })
+  .delete('/users/:id', async ({ db, params, user, set }) => {
+    if (!user || user.branchId !== null) { set.status = 403; return 'Forbidden'; }
+    if (user.id === Number(params.id)) {
+      set.status = 400;
+      return new Response("Tidak dapat menghapus akun diri sendiri.", { status: 400 });
+    }
+    try {
+      // Also delete sessions for this user before deleting the user
+      await db.delete(sessions).where(eq(sessions.userId, Number(params.id)));
+      await db.delete(users).where(eq(users.id, Number(params.id)));
+      return { success: true };
+    } catch (e: any) {
+      console.error("DB DELETE USER ERROR:", e);
+      return new Response("Gagal menghapus pengguna.", { status: 500 });
+    }
   });
 
 export type App = typeof app;

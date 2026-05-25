@@ -18,14 +18,22 @@
     amount: '',
     type: 'expense',
     description: '',
-    categoryId: '1',
+    categoryId: '',
     branchId: '',
     date: new Date().toISOString().slice(0, 10)
   });
 
+  let filteredCategories = $derived(
+    (data.categories as any[]).filter(c => c.type === formData.type)
+  );
+
   $effect(() => {
     if (data.branches && data.branches.length > 0 && formData.branchId === '') {
       formData.branchId = (data.branches[0] as { id: number }).id.toString();
+    }
+    // Auto select first category when type changes or initially
+    if (filteredCategories.length > 0 && !filteredCategories.find(c => c.id.toString() === formData.categoryId)) {
+      formData.categoryId = filteredCategories[0].id.toString();
     }
   });
 
@@ -105,6 +113,14 @@
               <select id="type" bind:value={formData.type} class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                 <option value="income">Pemasukan</option>
                 <option value="expense">Pengeluaran</option>
+              </select>
+            </div>
+            <div class="space-y-2">
+              <Label for="category">Kategori</Label>
+              <select id="category" bind:value={formData.categoryId} required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                {#each filteredCategories as category}
+                  <option value={(category as { id: number }).id.toString()}>{(category as { name: string }).name}</option>
+                {/each}
               </select>
             </div>
             {#if data.user?.branchId === null}

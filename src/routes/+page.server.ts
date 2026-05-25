@@ -8,12 +8,15 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	
 	const response = await api.api.transactions.get();
 	const branchesResponse = await api.api.branches.get();
+	const categoriesResponse = await api.api.categories.get();
 	
 	const transactions = response.data || [];
 	const branches = branchesResponse.data || [];
+	const categories = categoriesResponse.data || [];
 
 	return {
 		transactions,
-		branches
+		branches,
+		categories
 	};
 };

@@ -156,6 +156,10 @@ export const app = new Elysia({ aot: false, prefix: '/api' })
       console.error("DB DELETE ERROR:", e);
       return new Response("Tidak dapat menghapus cabang (kemungkinan ada transaksi terkait).", { status: 400 });
     }
+  })
+  .get('/categories', async ({ db, user, set }) => {
+    if (!user) { set.status = 401; return 'Unauthorized'; }
+    return await db.select().from(categories);
   });
 
 export type App = typeof app;

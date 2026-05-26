@@ -95,7 +95,7 @@
       <h2 class="text-2xl font-bold tracking-tight">Transaksi</h2>
       <Dialog.Root bind:open={dialogOpen}>
         <Dialog.Trigger>
-          <Button>Tambah Transaksi</Button>
+          <Button>+ Baru</Button>
         </Dialog.Trigger>
         <Dialog.Content class="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
           <Dialog.Header>

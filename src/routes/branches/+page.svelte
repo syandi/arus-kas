@@ -60,7 +60,7 @@
       <h2 class="text-2xl font-bold tracking-tight">Daftar Cabang</h2>
       <Dialog.Root bind:open={dialogOpen}>
         <Dialog.Trigger>
-          <Button>Tambah Cabang</Button>
+          <Button>+ Baru</Button>
         </Dialog.Trigger>
         <Dialog.Content class="sm:max-w-[425px]">
           <Dialog.Header>
@@ -102,12 +102,17 @@
           <Table.Body>
             {#each data.branches as branch}
               <Table.Row>
-                <Table.Cell>{branch.id}</Table.Cell>
-                <Table.Cell class="font-medium">{branch.name}</Table.Cell>
-                <Table.Cell>{branch.location || '-'}</Table.Cell>
-                <Table.Cell>{new Date(branch.createdAt).toLocaleDateString('id-ID')}</Table.Cell>
+                <Table.Cell>{(branch as { id: number }).id}</Table.Cell>
+                <Table.Cell class="font-medium">{(branch as { name: string }).name}</Table.Cell>
+                <Table.Cell>{(branch as { location: string | null }).location || '-'}</Table.Cell>
+                <Table.Cell>{new Date((branch as { createdAt: Date }).createdAt).toLocaleDateString('id-ID')}</Table.Cell>
                 <Table.Cell>
-                  <Button variant="ghost" size="sm" class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950" onclick={() => deleteBranch(branch.id)}>Hapus</Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                    onclick={() => deleteBranch((branch as { id: number }).id)}
+                  >Hapus</Button>
                 </Table.Cell>
               </Table.Row>
             {/each}

@@ -60,7 +60,7 @@
     <h2 class="text-2xl font-bold tracking-tight">Manajemen Pengguna</h2>
     <Dialog.Root bind:open={dialogOpen}>
       <Dialog.Trigger>
-        <Button>Tambah Pengguna</Button>
+        <Button>+ Baru</Button>
       </Dialog.Trigger>
       <Dialog.Content class="sm:max-w-[425px]">
         <Dialog.Header>
@@ -81,7 +81,12 @@
             <select id="branch" bind:value={formData.branchId} class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
               <option value="">-- Semua Cabang (Superadmin) --</option>
               {#each data.branches as branch}
-                <option value={(branch as { id: number }).id.toString()}>{(branch as { name: string }).name}</option>
+                <option value={(branch as { id: number }).id.toString()}>
+                  {(branch as { name: string }).name}
+                  {#if (branch as { location: string | null }).location}
+                    - {(branch as { location: string }).location}
+                  {/if}
+                </option>
               {/each}
             </select>
           </div>

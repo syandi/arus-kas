@@ -18,6 +18,9 @@
 			"database_name": "arus-kas-db-prod",
 			"database_id": "420a1eaf-5ea7-4c17-885e-0de37afe5b5e",
 			"migrations_dir": "drizzle"
-		}
-	]
+    }
+	],
+	"ai": {
+		"binding": "AI"
+	}
 }

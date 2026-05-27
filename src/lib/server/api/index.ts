@@ -281,6 +281,96 @@ export const app = new Elysia({ aot: false, prefix: '/api' })
       console.error("DB DELETE USER ERROR:", e);
       return new Response("Gagal menghapus pengguna.", { status: 500 });
     }
+  })
+  .post('/ai/chat', async ({ db, body, user, set, store }) => {
+    if (!user) { set.status = 401; return 'Unauthorized'; }
+    const env = (store as any).env;
+    if (!env || !env.AI) {
+      set.status = 500;
+      return new Response('AI binding not configured. Please ensure ai binding is setup in wrangler.', { status: 500 });
+    }
+
+    let targetBranchId = user.branchId;
+    if (user.branchId === null) {
+       if (body.branchId) {
+         targetBranchId = Number(body.branchId);
+       }
+    } else {
+       if (body.branchId && Number(body.branchId) !== user.branchId) {
+          set.status = 403; return 'Forbidden';
+       }
+    }
+
+    let txs;
+    if (targetBranchId !== null) {
+      txs = await db.select({
+        amount: transactions.amount,
+        type: transactions.type,
+        category: categories.name,
+        description: transactions.description,
+        date: transactions.date
+      }).from(transactions)
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
+        .where(eq(transactions.branchId, targetBranchId))
+        .orderBy(desc(transactions.date))
+        .limit(50);
+    } else {
+      txs = await db.select({
+        amount: transactions.amount,
+        type: transactions.type,
+        category: categories.name,
+        description: transactions.description,
+        date: transactions.date
+      }).from(transactions)
+        .leftJoin(categories, eq(transactions.categoryId, categories.id))
+        .orderBy(desc(transactions.date))
+        .limit(50);
+    }
+
+    let contextPrompt = 'Kamu adalah asisten analis keuangan AI pintar (bernama ArusKas AI). Jawablah pertanyaan user dengan santai, jelas, dan profesional menggunakan bahasa Indonesia.';
+    if (txs.length > 0) {
+      let totalIncome = 0;
+      let totalExpense = 0;
+      const txStrings = txs.map(t => {
+        if (t.type === 'income') totalIncome += t.amount;
+        else totalExpense += t.amount;
+        const dateStr = new Date(t.date).toLocaleDateString('id-ID');
+        return `[${dateStr}] ${t.type === 'income' ? 'Pemasukan' : 'Pengeluaran'} Rp${t.amount} (${t.category}): ${t.description}`;
+      }).join('\n');
+
+      contextPrompt += `\n\nSebagai konteks, berikut adalah ringkasan saldo saat ini berdasarkan 50 transaksi terakhir cabang ini:
+Total Pemasukan: Rp${totalIncome}
+Total Pengeluaran: Rp${totalExpense}
+
+Daftar Transaksi Terakhir:
+${txStrings}
+
+Gunakan data di atas untuk menjawab pertanyaan user jika relevan. Jika ditanya tentang prediksi, perhitungan, atau saran, berikan analisis berdasarkan angka tersebut.`;
+    }
+
+    const aiMessages = [
+      { role: 'system', content: contextPrompt },
+      ...body.messages
+    ];
+
+    try {
+      const result = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
+        messages: aiMessages
+      });
+      return { response: result.response };
+    } catch (e: any) {
+      console.error("AI ERROR:", e);
+      set.status = 500;
+      return new Response('Gagal memproses AI: ' + (e.message || 'Unknown error'), { status: 500 });
+    }
+  }, {
+    body: t.Object({
+      branchId: t.Optional(t.String()),
+      messages: t.Array(t.Object({
+        role: t.String(),
+        content: t.String()
+      }))
+    })
   });
 
 export type App = typeof app;

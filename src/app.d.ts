@@ -3,6 +3,7 @@
 declare global {
 	interface Env {
 		DB: D1Database;
+		AI: any;
 	}
 	namespace App {
 		interface Locals {

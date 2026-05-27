@@ -14,6 +14,11 @@
   let dialogOpen = $state(false);
   let loading = $state(false);
 
+  let aiDialogOpen = $state(false);
+  let aiLoading = $state(false);
+  let chatHistory = $state<{role: string, content: string}[]>([]);
+  let chatInput = $state('');
+
   function toLocalISODate(date: Date) {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -130,6 +135,42 @@
     await fetch('/logout', { method: 'POST' });
     window.location.href = '/login';
   }
+
+  function openAIChat() {
+    aiDialogOpen = true;
+    if (chatHistory.length === 0) {
+      chatHistory = [
+        { role: 'assistant', content: 'Halo! Saya Asisten ArusKas AI. Berdasarkan data transaksi Anda saat ini, ada yang bisa saya bantu analisa atau hitung?' }
+      ];
+    }
+  }
+
+  async function sendChatMessage(e?: Event) {
+    if (e) e.preventDefault();
+    if (!chatInput.trim() || aiLoading) return;
+
+    const userMessage = chatInput.trim();
+    chatInput = '';
+    chatHistory = [...chatHistory, { role: 'user', content: userMessage }];
+    aiLoading = true;
+    
+    // Convert history for API (filter out the first greeting if needed, but it's fine to send it as 'assistant' so llama3 has context)
+    // Cloudflare AI uses 'system', 'user', 'assistant' roles
+    const apiMessages = chatHistory.filter(m => m.role === 'user' || m.role === 'assistant');
+
+    const api = getApi(window.location.origin, data.csrfToken);
+    const res = await api.api.ai.chat.post({
+      branchId: filterBranchId || undefined,
+      messages: apiMessages
+    });
+    
+    aiLoading = false;
+    if (!res.error) {
+      chatHistory = [...chatHistory, { role: 'assistant', content: (res.data as any).response }];
+    } else {
+      chatHistory = [...chatHistory, { role: 'assistant', content: 'Maaf, gagal memproses respons AI: ' + JSON.stringify(res.error) }];
+    }
+  }
 </script>
 
 <div class="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 p-6">
@@ -221,9 +262,14 @@
 
     <Card.Root>
       <Card.Header class="space-y-4">
-        <div>
-          <Card.Title>Riwayat Transaksi</Card.Title>
-          <Card.Description>Daftar transaksi berdasarkan filter.</Card.Description>
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <Card.Title>Riwayat Transaksi</Card.Title>
+            <Card.Description>Daftar transaksi berdasarkan filter.</Card.Description>
+          </div>
+          <Button class="gap-2 bg-linier-to-r from-indigo-500 to-purple-600 text-white border-0 hover:from-indigo-600 hover:to-purple-700 shadow-md transition-all hover:scale-105" onclick={openAIChat}>
+            ✨ Asisten AI
+          </Button>
         </div>
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div class="flex items-center gap-2">
@@ -292,3 +338,43 @@
     </Card.Root>
   </div>
 </div>
+
+<Dialog.Root bind:open={aiDialogOpen}>
+  <Dialog.Content class="sm:max-w-[600px] max-h-[85vh] flex flex-col p-0 overflow-hidden">
+    <div class="p-6 border-b">
+      <Dialog.Title class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+        ✨ Asisten Keuangan Llama 3
+      </Dialog.Title>
+      <Dialog.Description>Asisten pintar yang mengetahui konteks transaksi cabang Anda.</Dialog.Description>
+    </div>
+    <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-zinc-50/50 dark:bg-zinc-900/50">
+      {#each chatHistory as msg}
+        <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'}">
+          <div class="max-w-[85%] rounded-2xl px-4 py-3 {msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white dark:bg-zinc-800 border shadow-sm rounded-tl-sm'}">
+            <div class="prose prose-sm max-w-none whitespace-pre-wrap {msg.role === 'user' ? 'text-white' : 'dark:text-zinc-200'}">
+              {msg.content}
+            </div>
+          </div>
+        </div>
+      {/each}
+      {#if aiLoading}
+        <div class="flex justify-start">
+          <div class="bg-white dark:bg-zinc-800 border shadow-sm rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2">
+            <div class="animate-bounce h-2 w-2 bg-zinc-400 rounded-full"></div>
+            <div class="animate-bounce h-2 w-2 bg-zinc-400 rounded-full" style="animation-delay: 0.2s"></div>
+            <div class="animate-bounce h-2 w-2 bg-zinc-400 rounded-full" style="animation-delay: 0.4s"></div>
+          </div>
+        </div>
+      {/if}
+    </div>
+    <div class="p-4 bg-white dark:bg-zinc-950 border-t">
+      <form onsubmit={sendChatMessage} class="flex gap-2">
+        <Input type="text" bind:value={chatInput} placeholder="Tanya tentang arus kas..." class="flex-1 rounded-full px-4" disabled={aiLoading} />
+        <Button type="submit" disabled={!chatInput.trim() || aiLoading} class="rounded-full px-6 bg-indigo-600 hover:bg-indigo-700 text-white">
+          Kirim
+        </Button>
+      </form>
+      <p class="text-[10px] text-center text-zinc-400 mt-2">AI dapat memberikan informasi yang tidak akurat. Harap verifikasi kalkulasinya.</p>
+    </div>
+  </Dialog.Content>
+</Dialog.Root>

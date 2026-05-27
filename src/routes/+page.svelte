@@ -267,7 +267,7 @@
             <Card.Title>Riwayat Transaksi</Card.Title>
             <Card.Description>Daftar transaksi berdasarkan filter.</Card.Description>
           </div>
-          <Button class="gap-2 bg-linier-to-r from-indigo-500 to-purple-600 text-white border-0 hover:from-indigo-600 hover:to-purple-700 shadow-md transition-all hover:scale-105" onclick={openAIChat}>
+          <Button class="gap-2 bg-linear-to-r from-indigo-500 to-purple-600 text-white border-0 hover:from-indigo-600 hover:to-purple-700 shadow-md transition-all hover:scale-105" onclick={openAIChat}>
             ✨ Asisten AI
           </Button>
         </div>

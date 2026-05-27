@@ -149,6 +149,32 @@ export const app = new Elysia({ aot: false, prefix: '/api' })
       date: t.String()
     })
   })
+  .put('/transactions/:id', async ({ db, params, body, user, set }) => {
+    if (!user) { set.status = 401; return 'Unauthorized'; }
+    if (user.branchId !== null) {
+      const tx = await db.select().from(transactions).where(eq(transactions.id, Number(params.id))).get();
+      if (!tx || tx.branchId !== user.branchId) {
+        set.status = 403; return 'Forbidden';
+      }
+      if (body.branchId !== user.branchId) {
+        set.status = 403; return 'Forbidden: Cannot move transaction to another branch';
+      }
+    }
+    await db.update(transactions).set({
+      ...body,
+      date: new Date(body.date)
+    }).where(eq(transactions.id, Number(params.id)));
+    return { success: true };
+  }, {
+    body: t.Object({
+      amount: t.Number(),
+      type: t.Union([t.Literal('income'), t.Literal('expense')]),
+      categoryId: t.Number(),
+      branchId: t.Number(),
+      description: t.String(),
+      date: t.String()
+    })
+  })
   .delete('/transactions/:id', async ({ db, params, user, set }) => {
     if (!user) { set.status = 401; return 'Unauthorized'; }
     if (user.branchId !== null) {

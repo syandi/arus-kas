@@ -14,13 +14,21 @@
   let dialogOpen = $state(false);
   let loading = $state(false);
 
+  function toLocalISODate(date: Date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   let formData = $state({
+    id: null as number | null,
     amount: '',
     type: 'expense',
     description: '',
     categoryId: '',
     branchId: '',
-    date: new Date().toISOString().slice(0, 10)
+    date: toLocalISODate(new Date())
   });
 
   let filteredCategories = $derived(
@@ -38,11 +46,23 @@
   });
 
   let filterBranchId = $state('');
+  
+  // Set default dates to first day of current month and today
+  const today = new Date();
+  const firstDay = toLocalISODate(new Date(today.getFullYear(), today.getMonth(), 1));
+  const todayDate = toLocalISODate(today);
+  
+  let filterStartDate = $state(firstDay);
+  let filterEndDate = $state(todayDate);
 
   let filteredTransactions = $derived(
-    filterBranchId === '' 
-      ? data.transactions 
-      : (data.transactions as any[]).filter(t => t.branchId.toString() === filterBranchId)
+    (data.transactions as any[]).filter(t => {
+      const matchBranch = filterBranchId === '' || t.branchId.toString() === filterBranchId;
+      const tDate = toLocalISODate(new Date(t.date));
+      const matchStart = filterStartDate === '' || tDate >= filterStartDate;
+      const matchEnd = filterEndDate === '' || tDate <= filterEndDate;
+      return matchBranch && matchStart && matchEnd;
+    })
   );
 
   let totalIncome = $derived((filteredTransactions as any[]).filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0));
@@ -53,23 +73,46 @@
     e.preventDefault();
     loading = true;
     const api = getApi(window.location.origin, data.csrfToken);
-    const { data: res, error } = await api.api.transactions.post({
+    
+    const payload = {
       amount: Number(formData.amount),
       type: formData.type as 'income' | 'expense',
       categoryId: Number(formData.categoryId),
       branchId: Number(formData.branchId),
       description: formData.description,
       date: formData.date
-    });
+    };
+
+    let error;
+    if (formData.id) {
+      const res = await api.api.transactions({ id: formData.id }).put(payload);
+      error = res.error;
+    } else {
+      const res = await api.api.transactions.post(payload);
+      error = res.error;
+    }
     
     loading = false;
     if (!error) {
       dialogOpen = false;
       invalidateAll(); // refresh data
-      formData = { amount: '', type: 'expense', description: '', categoryId: '1', branchId: '', date: new Date().toISOString().slice(0, 10) };
+      formData = { id: null, amount: '', type: 'expense', description: '', categoryId: '1', branchId: '', date: toLocalISODate(new Date()) };
     } else {
-      alert('Gagal menambah transaksi');
+      alert(formData.id ? 'Gagal mengubah transaksi' : 'Gagal menambah transaksi');
     }
+  }
+
+  function editTransaction(tx: any) {
+    formData = {
+      id: tx.id,
+      amount: tx.amount.toString(),
+      type: tx.type,
+      description: tx.description,
+      categoryId: tx.categoryId.toString(),
+      branchId: tx.branchId.toString(),
+      date: toLocalISODate(new Date(tx.date))
+    };
+    dialogOpen = true;
   }
 
   async function deleteTransaction(id: number) {
@@ -99,8 +142,8 @@
         </Dialog.Trigger>
         <Dialog.Content class="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
           <Dialog.Header>
-            <Dialog.Title>Transaksi Baru</Dialog.Title>
-            <Dialog.Description>Masukkan detail pemasukan atau pengeluaran baru.</Dialog.Description>
+            <Dialog.Title>{formData.id ? 'Edit Transaksi' : 'Transaksi Baru'}</Dialog.Title>
+            <Dialog.Description>Masukkan detail pemasukan atau pengeluaran.</Dialog.Description>
           </Dialog.Header>
           <form onsubmit={submitTransaction} class="space-y-4 py-4">
             <div class="space-y-2">
@@ -177,22 +220,34 @@
     </div>
 
     <Card.Root>
-      <Card.Header class="flex flex-row items-center justify-between">
+      <Card.Header class="space-y-4">
         <div>
           <Card.Title>Riwayat Transaksi</Card.Title>
-          <Card.Description>Daftar transaksi terbaru bulan ini.</Card.Description>
+          <Card.Description>Daftar transaksi berdasarkan filter.</Card.Description>
         </div>
-        {#if data.user?.branchId === null}
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div class="flex items-center gap-2">
-            <Label for="filterBranch" class="text-sm font-medium">Filter:</Label>
-            <select id="filterBranch" bind:value={filterBranchId} class="flex h-9 w-40 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
-              <option value="">Semua Cabang</option>
-              {#each data.branches as branch}
-                <option value={(branch as { id: number }).id.toString()}>{(branch as { name: string }).name}</option>
-              {/each}
-            </select>
+            {#if data.user?.branchId === null}
+              <Label for="filterBranch" class="text-sm font-medium">Cabang:</Label>
+              <select id="filterBranch" bind:value={filterBranchId} class="flex h-9 w-40 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                <option value="">Semua Cabang</option>
+                {#each data.branches as branch}
+                  <option value={(branch as { id: number }).id.toString()}>{(branch as { name: string }).name}</option>
+                {/each}
+              </select>
+            {/if}
           </div>
-        {/if}
+          <div class="flex flex-wrap items-center gap-4">
+            <div class="flex items-center gap-2">
+              <Label for="startDate" class="text-sm font-medium">Dari:</Label>
+              <Input id="startDate" type="date" bind:value={filterStartDate} class="h-9 w-36" />
+            </div>
+            <div class="flex items-center gap-2">
+              <Label for="endDate" class="text-sm font-medium">Sampai:</Label>
+              <Input id="endDate" type="date" bind:value={filterEndDate} class="h-9 w-36" />
+            </div>
+          </div>
+        </div>
       </Card.Header>
       <Card.Content>
         <Table.Root>
@@ -219,7 +274,10 @@
                   {((tx as { type: 'income' | 'expense' }).type === 'income' ? '+' : '-')} Rp {((tx as { amount: number }).amount).toLocaleString('id-ID')}
                 </Table.Cell>
                 <Table.Cell>
-                  <Button variant="ghost" size="sm" class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950" onclick={() => deleteTransaction((tx as { id: number }).id)}>Hapus</Button>
+                  <div class="flex items-center justify-end gap-2">
+                    <Button variant="ghost" size="sm" class="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950 px-2" onclick={() => editTransaction(tx)}>Edit</Button>
+                    <Button variant="ghost" size="sm" class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 px-2" onclick={() => deleteTransaction((tx as { id: number }).id)}>Hapus</Button>
+                  </div>
                 </Table.Cell>
               </Table.Row>
             {/each}

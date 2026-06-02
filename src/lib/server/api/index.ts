@@ -124,10 +124,22 @@ export const app = new Elysia({ aot: false, prefix: '/api' })
   })
   .get('/transactions', async ({ db, user, set }) => {
     if (!user) { set.status = 401; return 'Unauthorized'; }
+    const query = db.select({
+      id: transactions.id,
+      amount: transactions.amount,
+      type: transactions.type,
+      categoryId: transactions.categoryId,
+      branchId: transactions.branchId,
+      userId: transactions.userId,
+      description: transactions.description,
+      date: transactions.date,
+      author: users.username
+    }).from(transactions).leftJoin(users, eq(transactions.userId, users.id)).orderBy(desc(transactions.date));
+
     if (user.branchId !== null) {
-      return await db.select().from(transactions).where(eq(transactions.branchId, user.branchId)).orderBy(desc(transactions.date));
+      return await query.where(eq(transactions.branchId, user.branchId));
     }
-    return await db.select().from(transactions).orderBy(desc(transactions.date));
+    return await query;
   })
   .post('/transactions', async ({ db, body, user, set }) => {
     if (!user) { set.status = 401; return 'Unauthorized'; }
@@ -136,6 +148,7 @@ export const app = new Elysia({ aot: false, prefix: '/api' })
     }
     await db.insert(transactions).values({
       ...body,
+      userId: user.id,
       date: new Date(body.date)
     });
     return { success: true };

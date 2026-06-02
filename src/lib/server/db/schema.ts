@@ -19,6 +19,7 @@ export const transactions = sqliteTable('transactions', {
   type: text('type', { enum: ['income', 'expense'] }).notNull(),
   categoryId: integer('category_id').references(() => categories.id).notNull(),
   branchId: integer('branch_id').references(() => branches.id).notNull(),
+  userId: integer('user_id').references(() => users.id),
   description: text('description').notNull(),
   date: integer('date', { mode: 'timestamp' }).notNull(),
 });

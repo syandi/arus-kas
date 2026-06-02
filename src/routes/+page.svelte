@@ -302,6 +302,7 @@
               <Table.Head>Tanggal</Table.Head>
               <Table.Head>Deskripsi</Table.Head>
               <Table.Head>Tipe</Table.Head>
+              <Table.Head>Dibuat Oleh</Table.Head>
               <Table.Head class="text-right">Jumlah</Table.Head>
               <Table.Head class="w-[80px]"></Table.Head>
             </Table.Row>
@@ -316,6 +317,9 @@
                     {(tx as { type: 'income' | 'expense' }).type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
                   </span>
                 </Table.Cell>
+                <Table.Cell class="text-xs text-zinc-500">
+                  @{(tx as { author: string }).author || 'Sistem'}
+                </Table.Cell>
                 <Table.Cell class="text-right {((tx as { type: 'income' | 'expense' }).type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400')}">
                   {((tx as { type: 'income' | 'expense' }).type === 'income' ? '+' : '-')} Rp {((tx as { amount: number }).amount).toLocaleString('id-ID')}
                 </Table.Cell>
@@ -329,7 +333,7 @@
             {/each}
             {#if filteredTransactions.length === 0}
               <Table.Row>
-                <Table.Cell colspan={5} class="h-24 text-center">Belum ada transaksi.</Table.Cell>
+                <Table.Cell colspan={6} class="h-24 text-center">Belum ada transaksi.</Table.Cell>
               </Table.Row>
             {/if}
           </Table.Body>

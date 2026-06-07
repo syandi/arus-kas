@@ -59,6 +59,8 @@
   
   let filterStartDate = $state(firstDay);
   let filterEndDate = $state(todayDate);
+  let searchQuery = $state('');
+  let filterType = $state('all');
 
   let filteredTransactions = $derived(
     (data.transactions as any[]).filter(t => {
@@ -66,7 +68,9 @@
       const tDate = toLocalISODate(new Date(t.date));
       const matchStart = filterStartDate === '' || tDate >= filterStartDate;
       const matchEnd = filterEndDate === '' || tDate <= filterEndDate;
-      return matchBranch && matchStart && matchEnd;
+      const matchSearch = searchQuery === '' || t.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchType = filterType === 'all' || t.type === filterType;
+      return matchBranch && matchStart && matchEnd && matchSearch && matchType;
     })
   );
 
@@ -292,6 +296,18 @@
               <Label for="endDate" class="text-sm font-medium">Sampai:</Label>
               <Input id="endDate" type="date" bind:value={filterEndDate} class="h-9 w-36" />
             </div>
+          </div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-4 mt-2">
+          <div class="flex-1">
+            <Input type="text" placeholder="Cari deskripsi transaksi..." bind:value={searchQuery} class="h-9 w-full" />
+          </div>
+          <div class="flex-shrink-0">
+            <select bind:value={filterType} class="flex h-9 w-full sm:w-40 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+              <option value="all">Semua Tipe</option>
+              <option value="income">Pemasukan</option>
+              <option value="expense">Pengeluaran</option>
+            </select>
           </div>
         </div>
       </Card.Header>

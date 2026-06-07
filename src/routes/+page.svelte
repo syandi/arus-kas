@@ -363,7 +363,7 @@
   <Dialog.Content class="sm:max-w-[600px] max-h-[85vh] flex flex-col p-0 overflow-hidden">
     <div class="p-6 border-b">
       <Dialog.Title class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-        ✨ Asisten Keuangan Llama 3
+        ✨ Asisten Keuangan Llama 3.1
       </Dialog.Title>
       <Dialog.Description>Asisten pintar yang mengetahui konteks transaksi cabang Anda.</Dialog.Description>
     </div>

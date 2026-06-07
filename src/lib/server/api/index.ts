@@ -367,7 +367,7 @@ Gunakan data di atas untuk menjawab pertanyaan user jika relevan. Jika ditanya t
     ];
 
     try {
-      const result = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
+      const result = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
         messages: aiMessages
       });
       return { response: result.response };

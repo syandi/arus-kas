@@ -9,6 +9,7 @@
   import * as Select from '$lib/components/ui/select';
   import { getApi } from '$lib/api';
   import { invalidateAll } from '$app/navigation';
+	import { PencilIcon, TrashIcon } from '@lucide/svelte/icons';
 
   let { data }: { data: PageData } = $props();
   let dialogOpen = $state(false);
@@ -302,7 +303,7 @@
           <div class="flex-1">
             <Input type="text" placeholder="Cari deskripsi transaksi..." bind:value={searchQuery} class="h-9 w-full" />
           </div>
-          <div class="flex-shrink-0">
+          <div class="shrink-0">
             <select bind:value={filterType} class="flex h-9 w-full sm:w-40 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
               <option value="all">Semua Tipe</option>
               <option value="income">Pemasukan</option>
@@ -316,17 +317,19 @@
           <Table.Header>
             <Table.Row>
               <Table.Head>Tanggal</Table.Head>
+              <Table.Head>Cabang</Table.Head>
               <Table.Head>Deskripsi</Table.Head>
               <Table.Head>Tipe</Table.Head>
               <Table.Head>Dibuat Oleh</Table.Head>
               <Table.Head class="text-right">Jumlah</Table.Head>
-              <Table.Head class="w-[80px]"></Table.Head>
+              <Table.Head class="w-[80px] text-right">#</Table.Head>
             </Table.Row>
           </Table.Header>
           <Table.Body>
             {#each filteredTransactions as tx}
               <Table.Row>
                 <Table.Cell>{new Date((tx as { date: Date }).date).toLocaleDateString('id-ID')}</Table.Cell>
+                <Table.Cell>{(tx as { branchId: number }).branchId}</Table.Cell>
                 <Table.Cell>{(tx as { description: string }).description}</Table.Cell>
                 <Table.Cell>
                   <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold {((tx as { type: 'income' | 'expense' }).type === 'income' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300')}">
@@ -340,9 +343,15 @@
                   {((tx as { type: 'income' | 'expense' }).type === 'income' ? '+' : '-')} Rp {((tx as { amount: number }).amount).toLocaleString('id-ID')}
                 </Table.Cell>
                 <Table.Cell>
-                  <div class="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="sm" class="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950 px-2" onclick={() => editTransaction(tx)}>Edit</Button>
-                    <Button variant="ghost" size="sm" class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 px-2" onclick={() => deleteTransaction((tx as { id: number }).id)}>Hapus</Button>
+                  <div class="flex items-center justify-end gap-0">
+                    <Button variant="ghost" size="icon" class="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950" onclick={() => editTransaction(tx)}>
+                      <PencilIcon />
+                      <span class="sr-only">Edit</span>
+                    </Button>
+                    <Button variant="ghost" size="icon" class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950" onclick={() => deleteTransaction((tx as { id: number }).id)}>
+                      <TrashIcon />
+                      <span class="sr-only">Hapus</span>
+                    </Button>
                   </div>
                 </Table.Cell>
               </Table.Row>

@@ -1,14 +1,20 @@
 import { Elysia, t } from 'elysia';
 import { getDb } from '../db';
-import { transactions, categories, branches, users, sessions } from '../db/schema';
-import { desc, eq } from 'drizzle-orm';
+import { transactions, categories, branches, users, sessions, apiKeys } from '../db/schema';
+import { desc, eq, and, gte, lte } from 'drizzle-orm';
 
 // Pass env from SvelteKit to Elysia using state
 export const app = new Elysia({ aot: false, prefix: '/api' })
   .state('env', {} as any)
   .derive(({ store }) => ({ db: getDb(store.env) }))
   .onRequest(({ request, set }) => {
-    // CSRF Protection
+    // API keys are exempt from CSRF
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      return;
+    }
+    
+    // CSRF Protection for Cookie Auth
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
       const csrfHeader = request.headers.get('x-csrf-token');
       const cookieHeader = request.headers.get('cookie') || '';
@@ -16,24 +22,36 @@ export const app = new Elysia({ aot: false, prefix: '/api' })
       
       if (!csrfHeader || !csrfCookie || csrfHeader !== csrfCookie) {
         set.status = 403;
-        return 'CSRF token mismatch';
+        return { error: 'CSRF token mismatch', csrfHeader, csrfCookie };
       }
     }
   })
   .derive(async ({ request, db }) => {
-    const cookieHeader = request.headers.get('cookie') || '';
-    const sessionId = cookieHeader.split('; ').find(row => row.startsWith('session_id='))?.split('=')[1];
     let user = null;
-    if (sessionId) {
-      const result = await db.select({
-        session: sessions,
-        user: users
-      }).from(sessions)
-        .innerJoin(users, eq(sessions.userId, users.id))
-        .where(eq(sessions.id, sessionId))
-        .get();
-      if (result && new Date(result.session.expiresAt) > new Date()) {
-        user = result.user;
+    
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(token));
+      const keyHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      const result = await db.select({ user: users }).from(apiKeys).innerJoin(users, eq(apiKeys.userId, users.id)).where(eq(apiKeys.keyHash, keyHash)).get();
+      if (result) user = result.user;
+    } else {
+      const cookieHeader = request.headers.get('cookie') || '';
+      const sessionId = cookieHeader.split('; ').find(row => row.startsWith('session_id='))?.split('=')[1];
+      if (sessionId) {
+        const result = await db.select({
+          session: sessions,
+          user: users
+        }).from(sessions)
+          .innerJoin(users, eq(sessions.userId, users.id))
+          .where(eq(sessions.id, sessionId))
+          .get();
+        if (result && new Date(result.session.expiresAt) > new Date()) {
+          user = result.user;
+        }
       }
     }
     return { user };
@@ -384,6 +402,62 @@ Gunakan data di atas untuk menjawab pertanyaan user jika relevan. Jika ditanya t
         content: t.String()
       }))
     })
+  })
+  .get('/keys', async ({ db, user, set }) => {
+    if (!user || user.branchId !== null) { set.status = 403; return { error: 'Forbidden user' }; }
+    return await db.select({ id: apiKeys.id, name: apiKeys.name, createdAt: apiKeys.createdAt }).from(apiKeys).orderBy(desc(apiKeys.createdAt));
+  })
+  .post('/keys', async ({ db, body, user, set }) => {
+    if (!user || user.branchId !== null) { set.status = 403; return { error: 'Forbidden user' }; }
+    const rawKey = 'ak_live_' + crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(rawKey));
+    const keyHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    await db.insert(apiKeys).values({
+      name: body.name,
+      keyHash,
+      userId: user.id,
+      createdAt: new Date()
+    });
+    return { key: rawKey };
+  }, { body: t.Object({ name: t.String() }) })
+  .delete('/keys/:id', async ({ db, params, user, set }) => {
+    if (!user || user.branchId !== null) { set.status = 403; return 'Forbidden'; }
+    await db.delete(apiKeys).where(eq(apiKeys.id, Number(params.id)));
+    return { success: true };
+  })
+  .get('/export/summary', async ({ db, user, query, set }) => {
+    if (!user) { set.status = 401; return 'Unauthorized'; }
+    if (user.branchId !== null) { set.status = 403; return 'Forbidden'; }
+    
+    const conditions = [];
+    if (query.startDate) conditions.push(gte(transactions.date, new Date(query.startDate)));
+    if (query.endDate) conditions.push(lte(transactions.date, new Date(query.endDate + 'T23:59:59Z')));
+    
+    const txs = await db.select({
+      id: transactions.id,
+      amount: transactions.amount,
+      type: transactions.type,
+      category: categories.name,
+      branch: branches.name,
+      date: transactions.date,
+      description: transactions.description
+    }).from(transactions)
+      .leftJoin(categories, eq(transactions.categoryId, categories.id))
+      .leftJoin(branches, eq(transactions.branchId, branches.id))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(transactions.date));
+      
+    return {
+      totalTransactions: txs.length,
+      data: txs
+    };
+  }, {
+    query: t.Optional(t.Object({
+      startDate: t.Optional(t.String()),
+      endDate: t.Optional(t.String())
+    }))
   });
 
 export type App = typeof app;

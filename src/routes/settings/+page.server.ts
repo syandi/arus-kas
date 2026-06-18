@@ -2,12 +2,24 @@ import type { PageServerLoad, Actions } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 import { getApi } from '$lib/api';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url, fetch, request }) => {
     if (!locals.user) {
         throw redirect(302, '/login');
     }
+    
+    let apiKeys: any[] = [];
+    if (locals.user.branchId === null) {
+        const cookieString = request.headers.get('cookie') || '';
+        const api = getApi(url.origin, locals.csrfToken, cookieString, fetch);
+        const { data } = await api.api.keys.get();
+        if (data && !('error' in data)) {
+            apiKeys = data as any[];
+        }
+    }
+    
     return {
-        user: locals.user
+        user: locals.user,
+        apiKeys
     };
 };
 

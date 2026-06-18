@@ -36,3 +36,11 @@ export const sessions = sqliteTable('sessions', {
   userId: integer('user_id').references(() => users.id).notNull(),
   expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
 });
+
+export const apiKeys = sqliteTable('api_keys', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  keyHash: text('key_hash').notNull(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});

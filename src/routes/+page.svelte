@@ -9,7 +9,33 @@
   import * as Select from '$lib/components/ui/select';
   import { getApi } from '$lib/api';
   import { invalidateAll } from '$app/navigation';
-	import { PencilIcon, TrashIcon } from '@lucide/svelte/icons';
+  import { PencilIcon, TrashIcon } from '@lucide/svelte/icons';
+  
+  import { Line, Doughnut } from 'svelte-chartjs';
+  import {
+    Chart as ChartJS,
+    Title,
+    Tooltip,
+    Legend,
+    LineElement,
+    LinearScale,
+    PointElement,
+    CategoryScale,
+    ArcElement,
+    Filler
+  } from 'chart.js';
+
+  ChartJS.register(
+    Title,
+    Tooltip,
+    Legend,
+    LineElement,
+    LinearScale,
+    PointElement,
+    CategoryScale,
+    ArcElement,
+    Filler
+  );
 
   let { data }: { data: PageData } = $props();
   let dialogOpen = $state(false);
@@ -78,6 +104,79 @@
   let totalIncome = $derived((filteredTransactions as any[]).filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0));
   let totalExpense = $derived((filteredTransactions as any[]).filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0));
   let balance = $derived(totalIncome - totalExpense);
+
+  let dailyChartData = $derived.by(() => {
+    const map = new Map<string, { income: number, expense: number }>();
+    for (const t of filteredTransactions) {
+      const d = new Date(t.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+      if (!map.has(d)) map.set(d, { income: 0, expense: 0 });
+      const obj = map.get(d)!;
+      if (t.type === 'income') obj.income += t.amount;
+      else obj.expense += t.amount;
+    }
+    // Note: this sorts alphabetically which is fine for '1 Jun', '2 Jun' mostly, but ideally we sort by date. 
+    // Since filteredTransactions is already sorted by date desc, let's reverse it to get chronological order!
+    const chronologicalTx = [...filteredTransactions].reverse();
+    const orderedMap = new Map<string, { income: number, expense: number }>();
+    for (const t of chronologicalTx) {
+      const d = new Date(t.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+      if (!orderedMap.has(d)) orderedMap.set(d, { income: 0, expense: 0 });
+      const obj = orderedMap.get(d)!;
+      if (t.type === 'income') obj.income += t.amount;
+      else obj.expense += t.amount;
+    }
+    
+    const labels = Array.from(orderedMap.keys());
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Pemasukan',
+          data: labels.map(k => orderedMap.get(k)!.income),
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: 'Pengeluaran',
+          data: labels.map(k => orderedMap.get(k)!.expense),
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          fill: true,
+          tension: 0.4
+        }
+      ]
+    };
+  });
+
+  let categoryChartData = $derived.by(() => {
+    const expenses = filteredTransactions.filter((t: any) => t.type === 'expense');
+    const map = new Map<number, number>();
+    for (const t of expenses) {
+      map.set(t.categoryId, (map.get(t.categoryId) || 0) + t.amount);
+    }
+    const labels: string[] = [];
+    const chartData: number[] = [];
+    const colors = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#f43f5e'];
+    
+    let i = 0;
+    for (const [catId, amount] of map.entries()) {
+      const cat = (data.categories as any[]).find(c => c.id === catId);
+      labels.push(cat ? cat.name : 'Lainnya');
+      chartData.push(amount);
+      i++;
+    }
+    
+    return {
+      labels,
+      datasets: [{
+        data: chartData,
+        backgroundColor: colors.slice(0, Math.max(1, chartData.length)),
+        borderWidth: 0
+      }]
+    };
+  });
 
   async function submitTransaction(e: Event) {
     e.preventDefault();
@@ -238,6 +337,35 @@
       </Dialog.Root>
     </div>
 
+    <!-- Filter Control Panel -->
+    <Card.Root class="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm border-dashed">
+      <Card.Content class="p-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex items-center gap-2">
+            {#if data.user?.branchId === null}
+              <Label for="filterBranch" class="text-sm font-medium">Cabang:</Label>
+              <select id="filterBranch" bind:value={filterBranchId} class="flex h-9 w-40 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                <option value="">Semua Cabang</option>
+                {#each data.branches as branch}
+                  <option value={(branch as { id: number }).id.toString()}>{(branch as { name: string }).name}</option>
+                {/each}
+              </select>
+            {/if}
+          </div>
+          <div class="flex flex-wrap items-center gap-4">
+            <div class="flex items-center gap-2">
+              <Label for="startDate" class="text-sm font-medium">Dari:</Label>
+              <Input id="startDate" type="date" bind:value={filterStartDate} class="h-9 w-36" />
+            </div>
+            <div class="flex items-center gap-2">
+              <Label for="endDate" class="text-sm font-medium">Sampai:</Label>
+              <Input id="endDate" type="date" bind:value={filterEndDate} class="h-9 w-36" />
+            </div>
+          </div>
+        </div>
+      </Card.Content>
+    </Card.Root>
+
     <div class="grid gap-4 md:grid-cols-3">
       <Card.Root>
         <Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -265,6 +393,37 @@
       </Card.Root>
     </div>
 
+    <!-- Analytics Charts -->
+    <div class="grid gap-4 md:grid-cols-2">
+      <!-- Line Chart: Daily Trend -->
+      <Card.Root>
+        <Card.Header>
+          <Card.Title class="text-sm font-medium text-zinc-500">Tren Pemasukan vs Pengeluaran</Card.Title>
+        </Card.Header>
+        <Card.Content class="h-[300px] flex items-center justify-center">
+          {#if dailyChartData.labels.length > 0}
+            <Line data={dailyChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+          {:else}
+            <span class="text-sm text-zinc-400">Tidak ada data di rentang tanggal ini.</span>
+          {/if}
+        </Card.Content>
+      </Card.Root>
+
+      <!-- Doughnut Chart: Expenses by Category -->
+      <Card.Root>
+        <Card.Header>
+          <Card.Title class="text-sm font-medium text-zinc-500">Proporsi Pengeluaran (Berdasarkan Kategori)</Card.Title>
+        </Card.Header>
+        <Card.Content class="h-[300px] flex items-center justify-center">
+          {#if categoryChartData.datasets[0].data.length > 0}
+            <Doughnut data={categoryChartData} options={{ responsive: true, maintainAspectRatio: false, cutout: '70%' }} />
+          {:else}
+            <span class="text-sm text-zinc-400">Tidak ada pengeluaran di rentang tanggal ini.</span>
+          {/if}
+        </Card.Content>
+      </Card.Root>
+    </div>
+
     <Card.Root>
       <Card.Header class="space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
@@ -277,27 +436,7 @@
           </Button>
         </div>
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div class="flex items-center gap-2">
-            {#if data.user?.branchId === null}
-              <Label for="filterBranch" class="text-sm font-medium">Cabang:</Label>
-              <select id="filterBranch" bind:value={filterBranchId} class="flex h-9 w-40 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-                <option value="">Semua Cabang</option>
-                {#each data.branches as branch}
-                  <option value={(branch as { id: number }).id.toString()}>{(branch as { name: string }).name}</option>
-                {/each}
-              </select>
-            {/if}
-          </div>
-          <div class="flex flex-wrap items-center gap-4">
-            <div class="flex items-center gap-2">
-              <Label for="startDate" class="text-sm font-medium">Dari:</Label>
-              <Input id="startDate" type="date" bind:value={filterStartDate} class="h-9 w-36" />
-            </div>
-            <div class="flex items-center gap-2">
-              <Label for="endDate" class="text-sm font-medium">Sampai:</Label>
-              <Input id="endDate" type="date" bind:value={filterEndDate} class="h-9 w-36" />
-            </div>
-          </div>
+          <!-- Filters moved to top -->
         </div>
         <div class="flex flex-col sm:flex-row gap-4 mt-2">
           <div class="flex-1">

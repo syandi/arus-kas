@@ -61,6 +61,13 @@
     date: toLocalISODate(new Date())
   });
 
+  let amountDisplay = $derived(formData.amount ? Number(formData.amount).toLocaleString('id-ID') : '');
+
+  function onAmountInput(e: Event) {
+    const raw = (e.currentTarget as HTMLInputElement).value.replace(/[^\d]/g, '');
+    formData.amount = raw;
+  }
+
   let filteredCategories = $derived(
     (data.categories as any[]).filter(c => c.type === formData.type)
   );
@@ -299,7 +306,7 @@
             {/if}
             <div class="space-y-2">
               <Label for="amount">Jumlah (Rp)</Label>
-              <Input id="amount" type="number" bind:value={formData.amount} required placeholder="50000" />
+              <Input id="amount" type="text" inputmode="numeric" value={amountDisplay} oninput={onAmountInput} required placeholder="50.000" />
             </div>
             <div class="space-y-2">
               <Label for="desc">Deskripsi</Label>

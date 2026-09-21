@@ -11,7 +11,7 @@
   import { invalidateAll } from '$app/navigation';
   import { PencilIcon, TrashIcon } from '@lucide/svelte/icons';
   
-  import { Line, Doughnut } from 'svelte-chartjs';
+  import { Line } from 'svelte-chartjs';
   import {
     Chart as ChartJS,
     Title,
@@ -21,7 +21,6 @@
     LinearScale,
     PointElement,
     CategoryScale,
-    ArcElement,
     Filler
   } from 'chart.js';
 
@@ -33,7 +32,6 @@
     LinearScale,
     PointElement,
     CategoryScale,
-    ArcElement,
     Filler
   );
 
@@ -105,6 +103,16 @@
   let totalExpense = $derived((filteredTransactions as any[]).filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0));
   let balance = $derived(totalIncome - totalExpense);
 
+  let daysInRange = $derived.by(() => {
+    if (!filterStartDate || !filterEndDate) return 0;
+    const start = new Date(filterStartDate + 'T00:00:00');
+    const end = new Date(filterEndDate + 'T00:00:00');
+    if (start > end) return 0;
+    return Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  });
+  let avgIncomePerDay = $derived(daysInRange > 0 ? totalIncome / daysInRange : 0);
+  let avgExpensePerDay = $derived(daysInRange > 0 ? totalExpense / daysInRange : 0);
+
   let dailyChartData = $derived.by(() => {
     const map = new Map<string, { income: number, expense: number }>();
     for (const t of filteredTransactions) {
@@ -147,34 +155,6 @@
           tension: 0.4
         }
       ]
-    };
-  });
-
-  let categoryChartData = $derived.by(() => {
-    const expenses = filteredTransactions.filter((t: any) => t.type === 'expense');
-    const map = new Map<number, number>();
-    for (const t of expenses) {
-      map.set(t.categoryId, (map.get(t.categoryId) || 0) + t.amount);
-    }
-    const labels: string[] = [];
-    const chartData: number[] = [];
-    const colors = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#f43f5e'];
-    
-    let i = 0;
-    for (const [catId, amount] of map.entries()) {
-      const cat = (data.categories as any[]).find(c => c.id === catId);
-      labels.push(cat ? cat.name : 'Lainnya');
-      chartData.push(amount);
-      i++;
-    }
-    
-    return {
-      labels,
-      datasets: [{
-        data: chartData,
-        backgroundColor: colors.slice(0, Math.max(1, chartData.length)),
-        borderWidth: 0
-      }]
     };
   });
 
@@ -393,36 +373,41 @@
       </Card.Root>
     </div>
 
-    <!-- Analytics Charts -->
+    <!-- Analytics: Average per Day -->
     <div class="grid gap-4 md:grid-cols-2">
-      <!-- Line Chart: Daily Trend -->
       <Card.Root>
-        <Card.Header>
-          <Card.Title class="text-sm font-medium text-zinc-500">Tren Pemasukan vs Pengeluaran</Card.Title>
+        <Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card.Title class="text-sm font-medium">Rata-rata Pemasukan per Hari</Card.Title>
         </Card.Header>
-        <Card.Content class="h-[300px] flex items-center justify-center">
-          {#if dailyChartData.labels.length > 0}
-            <Line data={dailyChartData} options={{ responsive: true, maintainAspectRatio: false }} />
-          {:else}
-            <span class="text-sm text-zinc-400">Tidak ada data di rentang tanggal ini.</span>
-          {/if}
+        <Card.Content>
+          <div class="text-2xl font-bold text-green-600 dark:text-green-400">Rp {avgIncomePerDay.toLocaleString('id-ID')}</div>
+          <p class="text-xs text-zinc-500 mt-1">Selama {daysInRange} hari pada rentang tanggal ini.</p>
         </Card.Content>
       </Card.Root>
-
-      <!-- Doughnut Chart: Expenses by Category -->
       <Card.Root>
-        <Card.Header>
-          <Card.Title class="text-sm font-medium text-zinc-500">Proporsi Pengeluaran (Berdasarkan Kategori)</Card.Title>
+        <Card.Header class="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card.Title class="text-sm font-medium">Rata-rata Pengeluaran per Hari</Card.Title>
         </Card.Header>
-        <Card.Content class="h-[300px] flex items-center justify-center">
-          {#if categoryChartData.datasets[0].data.length > 0}
-            <Doughnut data={categoryChartData} options={{ responsive: true, maintainAspectRatio: false, cutout: '70%' }} />
-          {:else}
-            <span class="text-sm text-zinc-400">Tidak ada pengeluaran di rentang tanggal ini.</span>
-          {/if}
+        <Card.Content>
+          <div class="text-2xl font-bold text-red-600 dark:text-red-400">Rp {avgExpensePerDay.toLocaleString('id-ID')}</div>
+          <p class="text-xs text-zinc-500 mt-1">Selama {daysInRange} hari pada rentang tanggal ini.</p>
         </Card.Content>
       </Card.Root>
     </div>
+
+    <!-- Analytics Charts -->
+    <Card.Root>
+      <Card.Header>
+        <Card.Title class="text-sm font-medium text-zinc-500">Tren Pemasukan vs Pengeluaran</Card.Title>
+      </Card.Header>
+      <Card.Content class="h-[300px] flex items-center justify-center">
+        {#if dailyChartData.labels.length > 0}
+          <Line data={dailyChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+        {:else}
+          <span class="text-sm text-zinc-400">Tidak ada data di rentang tanggal ini.</span>
+        {/if}
+      </Card.Content>
+    </Card.Root>
 
     <Card.Root>
       <Card.Header class="space-y-4">
@@ -434,9 +419,6 @@
           <Button class="gap-2 bg-linear-to-r from-indigo-500 to-purple-600 text-white border-0 hover:from-indigo-600 hover:to-purple-700 shadow-md transition-all hover:scale-105" onclick={openAIChat}>
             ✨ Asisten AI
           </Button>
-        </div>
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <!-- Filters moved to top -->
         </div>
         <div class="flex flex-col sm:flex-row gap-4 mt-2">
           <div class="flex-1">
